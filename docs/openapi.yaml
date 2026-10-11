@@ -1,0 +1,162 @@
+openapi: 3.0.3
+info:
+  title: FolioOS Portfolio API
+  version: 1.0.0
+  description: Small backend for the portfolio. All errors share one shape.
+paths:
+  /api/contact:
+    post:
+      summary: Send a message to the portfolio owner
+      description: Same-origin only. Limited to 5 requests per hour per client.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, message]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 80 }
+                email: { type: string, format: email, maxLength: 120 }
+                message: { type: string, minLength: 20, maxLength: 2000 }
+                website: { type: string, description: Honeypot. Leave empty. }
+      responses:
+        "202": { description: Accepted, content: { application/json: { schema: { $ref: "#/components/schemas/Accepted" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+  /api/projects:
+    get:
+      summary: List projects
+      parameters:
+        - { name: kind, in: query, schema: { type: string, enum: [UI/UX, Branding, Illustration, Motion] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 12 } }
+      responses:
+        "200": { description: A page of projects }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/projects/{slug}:
+    get:
+      summary: Get one project
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: The project }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/health:
+    get:
+      summary: Liveness check
+      responses:
+        "200": { description: OK }
+  /api/comments:
+    get:
+      summary: List reviews (newest first) with the average star rating
+      parameters:
+        - { name: project, in: query, schema: { type: string }, description: Project slug, or "general" }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        "200": { description: "{ data: Comment[], total, average, page, limit }" }
+        "503": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Post a review (name, 1-5 star rating, comment)
+      description: Same-origin only. 5 per hour per client.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project, name, rating, body]
+              properties:
+                project: { type: string, description: Project slug or "general" }
+                name: { type: string, minLength: 2, maxLength: 60 }
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                body: { type: string, minLength: 5, maxLength: 1000 }
+                website: { type: string, description: Honeypot. Leave empty. }
+      responses:
+        "201": { description: Created }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/admin/login:
+    post:
+      summary: Admin sign in (sets a session cookie). 8 attempts per 15 minutes per client.
+      responses: { "200": { description: Signed in }, "401": { $ref: "#/components/responses/Error" }, "429": { $ref: "#/components/responses/Error" } }
+  /api/admin/logout:
+    post: { summary: Admin sign out, responses: { "200": { description: Signed out } } }
+  /api/admin/session:
+    get: { summary: Who am I (admin only), responses: { "200": { description: Admin }, "401": { $ref: "#/components/responses/Error" } } }
+  /api/admin/projects:
+    get: { summary: List all projects including drafts (admin only), responses: { "200": { description: OK } } }
+    post: { summary: Create a project (admin only), responses: { "201": { description: Created }, "409": { $ref: "#/components/responses/Error" }, "422": { $ref: "#/components/responses/Error" } } }
+  /api/admin/projects/{id}:
+    put: { summary: Update a project (admin only), parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: Updated } } }
+    delete: { summary: Delete a project (admin only), parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: Deleted } } }
+  /api/admin/projects/seed:
+    post: { summary: Load the sample projects into an empty database (admin only), responses: { "200": { description: Loaded } } }
+  /api/admin/upload:
+    post: { summary: Upload a JPG, PNG or WebP image up to 4 MB as multipart field "file" (admin only), responses: { "201": { description: "{ url }" }, "413": { $ref: "#/components/responses/Error" }, "415": { $ref: "#/components/responses/Error" } } }
+  /api/admin/comments:
+    get: { summary: List every comment for moderation (admin only), responses: { "200": { description: OK } } }
+  /api/admin/comments/{id}:
+    delete: { summary: Delete a comment (admin only), parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: Deleted } } }
+  /api/track:
+    post:
+      summary: Privacy-friendly analytics event (no cookies, no IP or user agent stored)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: { type: string, enum: [view, project_open, resume_download, hire_open, application_view] }
+                project: { type: string }
+                application: { type: string }
+                referrer: { type: string, description: Referring hostname only }
+      responses:
+        "204": { description: Recorded (or ignored when analytics is not configured) }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/admin/comments/{id}/status:
+    patch:
+      summary: "Approve or hide feedback. Implemented as PATCH /api/admin/comments/{id} with { status: approved | pending } (admin only)."
+      responses: { "200": { description: Updated } }
+  /api/admin/references:
+    get: { summary: List references (admin only), responses: { "200": { description: OK } } }
+    post: { summary: Create a reference (admin only), responses: { "201": { description: Created } } }
+  /api/admin/references/{id}:
+    put: { summary: Update a reference (admin only), parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: Updated } } }
+    delete: { summary: Delete a reference (admin only), parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: Deleted } } }
+  /api/admin/applications:
+    get: { summary: List company applications (admin only), responses: { "200": { description: OK } } }
+    post: { summary: Create a private company link (admin only), responses: { "201": { description: Created }, "409": { $ref: "#/components/responses/Error" } } }
+  /api/admin/applications/{id}:
+    put: { summary: Update an application (admin only), parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: Updated } } }
+    delete: { summary: Delete an application (admin only), parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: Deleted } } }
+  /api/admin/insights:
+    get: { summary: Last 30 days of visits, project opens, downloads and referrers (admin only), responses: { "200": { description: OK } } }
+components:
+  schemas:
+    Accepted:
+      type: object
+      properties: { ok: { type: boolean }, requestId: { type: string } }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            fields: { type: object, additionalProperties: { type: array, items: { type: string } } }
+        requestId: { type: string }
+  responses:
+    Error:
+      description: Error
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
