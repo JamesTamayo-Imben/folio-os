@@ -1,5 +1,6 @@
 export type DropPosition = "before" | "after";
 export type SortDirection = "asc" | "desc";
+export type SortMode = SortDirection | "size" | "default";
 
 export function reorderDesktopIcons<T extends string>(items: T[], fromId: T, toId: T, position: DropPosition = "before"): T[] {
   if (!items.includes(fromId) || !items.includes(toId) || fromId === toId) return items;
@@ -20,4 +21,8 @@ export function sortDesktopIcons<T extends string>(items: T[], direction: SortDi
     const diff = a.localeCompare(b);
     return direction === "asc" ? diff : -diff;
   });
+}
+
+export function sortDesktopIconsBySize<T extends string>(items: T[], sizes: Readonly<Record<string, number>>): T[] {
+  return [...items].sort((a, b) => (sizes[a] ?? 0) - (sizes[b] ?? 0) || a.localeCompare(b));
 }

@@ -15,6 +15,7 @@ export const APP_ICON: Record<Win["app"], IconName> = {
   personalize: "sliders",
   bin: "trash",
   reviews: "star",
+  games: "gamepad",
   snake: "snake",
   g2048: "tiles",
   mines: "flag",

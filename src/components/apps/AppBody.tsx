@@ -6,6 +6,7 @@ import { Minesweeper } from "../games/Minesweeper";
 import { Snake } from "../games/Snake";
 import { TicTacToe } from "../games/TicTacToe";
 import { About } from "./About";
+import { GamesHub } from "./GamesHub";
 import { Hire } from "./Hire";
 import { CaseStudy } from "./CaseStudy";
 import { Mail } from "./Mail";
@@ -26,6 +27,7 @@ export function AppBody({ win }: { win: Win }) {
     case "personalize": return <Personalize />;
     case "bin": return <RecycleBin />;
     case "reviews": return <Reviews />;
+    case "games": return <GamesHub />;
     case "snake": return <Snake />;
     case "g2048": return <Game2048 />;
     case "mines": return <Minesweeper />;

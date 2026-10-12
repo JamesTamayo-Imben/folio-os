@@ -8,7 +8,14 @@ import { defaultPalette } from "../os/Wallpaper";
 export function Personalize() {
   const { theme, accent, wallpaper, setTheme, setAccent, setWallpaper } = usePrefs();
   const projects = useProjects();
-  const walls = [{ id: "default", name: "Dusk", bg: coverBackground(defaultPalette) }, ...projects.map((p) => ({ id: p.slug, name: p.title, bg: projectBackground(p) }))];
+  const customColor = /^color:(#[\da-f]{3}|#[\da-f]{6})$/i.exec(wallpaper)?.[1];
+  const uploadedImage = /^image:(data:image\/(?:jpeg|png|webp);base64,[\da-z+/=]+)$/i.exec(wallpaper)?.[1];
+  const walls = [
+    { id: "default", name: "Dusk", bg: coverBackground(defaultPalette) },
+    ...projects.map((p) => ({ id: p.slug, name: p.title, bg: projectBackground(p) })),
+    ...(uploadedImage ? [{ id: wallpaper, name: "Uploaded image", bg: `url("${uploadedImage}") center / cover no-repeat` }] : []),
+    ...(customColor ? [{ id: wallpaper, name: "Custom color", bg: customColor }] : []),
+  ];
   const effectiveTheme = theme ?? "dark";
 
   return (

@@ -5,7 +5,7 @@ import { track } from "./track";
 
 export const TASKBAR = 56;
 
-export type AppId = "hire" | "work" | "case" | "about" | "mail" | "terminal" | "personalize" | "bin" | "reviews" | "snake" | "g2048" | "mines" | "memory" | "ttt";
+export type AppId = "hire" | "work" | "case" | "about" | "mail" | "terminal" | "personalize" | "bin" | "reviews" | "games" | "snake" | "g2048" | "mines" | "memory" | "ttt";
 export type Theme = "dark" | "light";
 
 export interface Win {
@@ -37,6 +37,7 @@ export const APP_META: Record<AppId, { title: string; w: number; h: number }> = 
   personalize: { title: "Personalize", w: 600, h: 560 },
   bin: { title: "Recycle Bin", w: 620, h: 480 },
   reviews: { title: "Feedback", w: 580, h: 620 },
+  games: { title: "Games", w: 560, h: 520 },
   snake: { title: "Snake", w: 440, h: 580 },
   g2048: { title: "2048", w: 440, h: 620 },
   mines: { title: "Minesweeper", w: 440, h: 600 },

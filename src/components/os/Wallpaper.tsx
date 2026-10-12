@@ -5,19 +5,24 @@ import { usePrefs } from "@/lib/store";
 import { coverBackground, projectBackground } from "./CoverArt";
 import { useProjects } from "./projects-context";
 
-export const defaultPalette: Palette = ["#4b57d6", "#c4478f", "#1a8f9a", "#0d1020"];
+export const defaultPalette: Palette = ["#111111", "#090909", "#1d1d1d", "#000000"];
 
 export function Wallpaper({ mounted }: { mounted: boolean }) {
   const id = usePrefs((s) => s.wallpaper);
   const projects = useProjects();
-  const project = mounted ? projects.find((p) => p.slug === id) : undefined;
-  const key = project ? project.slug : "default";
+  const customColor = /^color:(#[\da-f]{3}|#[\da-f]{6})$/i.exec(id)?.[1];
+  const uploadedImage = /^image:(data:image\/(?:jpeg|png|webp);base64,[\da-z+/=]+)$/i.exec(id)?.[1];
+  const project = mounted && !customColor ? projects.find((p) => p.slug === id) : undefined;
+  const key = customColor || uploadedImage ? id : project ? project.slug : "default";
+  const background = uploadedImage
+    ? `url("${uploadedImage}") center / cover no-repeat`
+    : customColor ?? (project ? projectBackground(project) : coverBackground(defaultPalette));
   return (
     <AnimatePresence initial={false}>
       <motion.div
         key={key}
         className="wallpaper"
-        style={{ background: project ? projectBackground(project) : coverBackground(defaultPalette) }}
+        style={{ background }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}

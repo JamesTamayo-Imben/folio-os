@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reorderDesktopIcons, sortDesktopIcons } from "@/components/os/desktop-order";
+import { reorderDesktopIcons, sortDesktopIcons, sortDesktopIconsBySize } from "@/components/os/desktop-order";
 
 describe("desktop ordering", () => {
   it("reorders icons by dragging one item before another", () => {
@@ -32,5 +32,10 @@ describe("desktop ordering", () => {
     const order = ["terminal", "about", "work", "hire"];
     expect(sortDesktopIcons(order, "asc")).toEqual(["about", "hire", "terminal", "work"]);
     expect(sortDesktopIcons(order, "desc")).toEqual(["work", "terminal", "hire", "about"]);
+  });
+
+  it("sorts icons by configured size, then name for ties", () => {
+    const sizes = { terminal: 640 * 420, about: 600 * 520, mail: 540 * 580 };
+    expect(sortDesktopIconsBySize(["mail", "terminal", "about"], sizes)).toEqual(["terminal", "about", "mail"]);
   });
 });

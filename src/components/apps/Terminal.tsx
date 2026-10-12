@@ -6,7 +6,7 @@ import { useProjects } from "../os/projects-context";
 
 interface Line { kind: "in" | "out"; text: string }
 
-const APPS: Record<string, AppId> = { hire: "hire", feedback: "reviews", work: "work", about: "about", mail: "mail", terminal: "terminal", personalize: "personalize", bin: "bin", reviews: "reviews", snake: "snake", "2048": "g2048", minesweeper: "mines", memory: "memory", tictactoe: "ttt" };
+const APPS: Record<string, AppId> = { hire: "hire", feedback: "reviews", work: "work", about: "about", mail: "mail", terminal: "terminal", personalize: "personalize", bin: "bin", reviews: "reviews", games: "games", snake: "snake", "2048": "g2048", minesweeper: "mines", memory: "memory", tictactoe: "ttt" };
 
 export function Terminal() {
   const site = useSiteProfile();
@@ -28,7 +28,7 @@ export function Terminal() {
     switch (cmd?.toLowerCase()) {
       case "": return [];
       case "help":
-        return ["help             list commands", "ls               list projects", "open <name>      open a project, app or game (snake, 2048, minesweeper, memory, tictactoe)", "theme dark|light switch theme", "wallpaper next   cycle wallpaper", "whoami           who is this", "hire             open the Hire me page", "clear            clear the screen"];
+        return ["help             list commands", "ls               list projects", "open <name>      open a project, app or game (games, snake, 2048, minesweeper, memory, tictactoe)", "theme dark|light switch theme", "wallpaper next   cycle wallpaper", "whoami           who is this", "hire             open the Hire me page", "clear            clear the screen"];
       case "ls":
         return projects.map((p) => `${p.slug.padEnd(18)}${p.kind.padEnd(14)}${p.year}`);
       case "whoami":

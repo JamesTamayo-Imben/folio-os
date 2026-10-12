@@ -29,6 +29,9 @@ const paths = {
   flag: ["M6 21V4", "M6 4h11l-2.5 4L17 12H6"],
   cards: ["M7 6h9a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z", "M9 3h9a2 2 0 0 1 2 2v11"],
   hash: ["M9 4L7 20", "M17 4l-2 16", "M4 9h16", "M3.5 15h16"],
+  gamepad: [
+    "M1.49 9.34 0.93 10.71 0.63 11.61 0.3 12.91 0.07 14.37 0.04 16.04 0.19 17.12 0.52 18.2 1.04 19.1 1.6 19.51 2.2 19.66 2.76 19.66 3.13 19.58 3.76 19.32 4.1 19.02 4.66 18.24 5.63 17.09 6.63 16.08 7.49 15.45 8.16 15.11 9.06 14.81 10.02 14.59 11.14 14.44 12.78 14.44 13.94 14.59 15.06 14.85 16.32 15.37 17.33 16.08 18.22 16.98 20.09 19.25 20.68 19.55 21.2 19.66 21.73 19.66 22.29 19.55 22.99 18.99 23.52 18.02 23.85 16.71 23.93 16.01 23.93 14.81 23.66 12.91 23.07 10.79 22.66 9.75 22.02 8.4 20.91 6.58 20.2 5.68 19.64 5.12 19.08 4.71 18.63 4.49 18.26 4.38 17.44 4.42 16.7 4.79 14.94 5.98 14.12 6.39 13.49 6.61 12.78 6.76 11.52 6.8 10.62 6.65 9.5 6.24 8.72 5.8 7.23 4.75 6.67 4.45 6.26 4.34 5.81 4.34 5.48 4.42 5.07 4.6 4.55 4.94 3.58 5.91 2.57 7.32 2.09 8.14Z M4.88 7.73 5.89 7.73 5.89 9.63 7.79 9.63 7.79 10.64 5.89 10.64 5.89 12.54 4.88 12.54 4.88 10.64 3.02 10.64 3.02 9.63 4.88 9.63Z M9.2 11.42h1.83v1.01h-1.83z M12.97 11.42h1.6v1.01h-1.6z M17.68 8.16a0.91 0.91 0 1 0 1.83 0a0.91 0.91 0 1 0 -1.83 0 M15.8 10.06a0.91 0.91 0 1 0 1.83 0a0.91 0.91 0 1 0 -1.83 0 M19.57 10.06a0.91 0.91 0 1 0 1.83 0a0.91 0.91 0 1 0 -1.83 0 M17.68 11.94a0.91 0.91 0 1 0 1.83 0a0.91 0.91 0 1 0 -1.83 0",
+  ],
   briefcase: ["M4 8h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z", "M9 8V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2", "M3 13h18"],
   plus: ["M12 5v14", "M5 12h14"],
   edit: ["M4 20h4L19 9l-4-4L4 16z", "M13.5 6.5l4 4"],
@@ -38,8 +41,9 @@ const paths = {
 export type IconName = keyof typeof paths;
 
 export function Icon({ name, size = 20, className }: { name: IconName; size?: number; className?: string }) {
+  const isFilled = name === "gamepad";
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={isFilled ? "currentColor" : "none"} fillRule="evenodd" stroke={isFilled ? "none" : "currentColor"} strokeWidth={isFilled ? undefined : 1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" className={className}>
       {paths[name].map((d, i) => (
         <path key={i} d={d} />
       ))}
