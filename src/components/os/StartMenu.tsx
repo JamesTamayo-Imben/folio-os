@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { initials, site } from "@/config/site";
+import { useSiteProfile, profileInitials } from "./site-profile-context";
 import { useOs, usePrefs, type AppId } from "@/lib/store";
 import { Icon, type IconName } from "./Icon";
 import { CoverArt } from "./CoverArt";
@@ -34,6 +34,7 @@ const GAMES: { app: AppId; label: string; icon: IconName }[] = [
 ];
 
 export function StartMenu({ effectiveTheme }: { effectiveTheme: "dark" | "light" }) {
+  const site = useSiteProfile();
   const { open, setStart, setLocked } = useOs();
   const projects = useProjects();
   const setTheme = usePrefs((s) => s.setTheme);
@@ -118,7 +119,14 @@ export function StartMenu({ effectiveTheme }: { effectiveTheme: "dark" | "light"
       )}
 
       <div className="start-foot">
-        <span className="user"><span className="avatar sm" aria-hidden="true">{initials}</span> {site.name}</span>
+        <span className="user">
+          {site.profileImageUrl ? (
+            <img className="avatar sm" src={site.profileImageUrl} alt="Profile" style={{ objectFit: "cover" }} />
+          ) : (
+            <span className="avatar sm" aria-hidden="true">{profileInitials(site.name)}</span>
+          )}
+          {site.name}
+        </span>
         <button className="tb-btn" onClick={() => setLocked(true)} aria-label="Lock screen" title="Lock">
           <Icon name="power" size={18} />
         </button>

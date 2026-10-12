@@ -1,12 +1,13 @@
 "use client";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
-import { initials, site } from "@/config/site";
+import { useSiteProfile, profileInitials } from "./site-profile-context";
 import type { PublicGreeting } from "@/lib/applicationsRepo";
 import { useClock } from "./hooks";
 import { Icon } from "./Icon";
 
 export function LockScreen({ onEnter, greeting }: { onEnter: (hire?: boolean) => void; greeting?: Pick<PublicGreeting, "company" | "role" | "note"> | null }) {
+  const site = useSiteProfile();
   const now = useClock();
   const reduce = useReducedMotion();
   const btn = useRef<HTMLButtonElement>(null);
@@ -34,7 +35,11 @@ export function LockScreen({ onEnter, greeting }: { onEnter: (hire?: boolean) =>
             {greeting.role ? ` \u00B7 ${greeting.role}` : ""}
           </p>
         )}
-        <div className="avatar lg" aria-hidden="true">{initials}</div>
+        {site.profileImageUrl ? (
+          <img className="avatar lg" src={site.profileImageUrl} alt="Profile" style={{ objectFit: "cover" }} />
+        ) : (
+          <div className="avatar lg" aria-hidden="true">{profileInitials(site.name)}</div>
+        )}
         <h1 className="lock-name">{site.name}</h1>
         <p className="lock-role">{site.role}</p>
         {greeting?.note && <p className="lock-note">{greeting.note}</p>}

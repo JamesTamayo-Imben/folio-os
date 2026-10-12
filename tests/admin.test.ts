@@ -5,6 +5,7 @@ const state = vi.hoisted(() => ({
   signIn: vi.fn(),
   result: { data: null as unknown, error: null as null | { code?: string; message?: string } },
   upload: vi.fn(),
+  upsert: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -15,6 +16,7 @@ vi.mock("@/lib/supabase/clients", () => {
     for (const m of ["insert", "update", "delete", "upsert", "eq", "select", "order"]) c[m] = () => c;
     c.single = async () => state.result;
     c.maybeSingle = async () => state.result;
+    c.upsert = (...args: unknown[]) => (state.upsert(...args), c);
     c.then = (res: (v: unknown) => unknown) => res(state.result);
     return c;
   };
@@ -33,6 +35,8 @@ import { GET as listProjects, POST as createProject } from "@/app/api/admin/proj
 import { DELETE as deleteProject } from "@/app/api/admin/projects/[id]/route";
 import { GET as listComments } from "@/app/api/admin/comments/route";
 import { POST as upload } from "@/app/api/admin/upload/route";
+import { GET as getProfile, PUT as updateProfile } from "@/app/api/admin/profile/route";
+import { POST as uploadResume } from "@/app/api/admin/resume/route";
 import { __resetRateLimit } from "@/lib/rateLimit";
 
 const URL_ = "http://localhost:3000";
@@ -59,6 +63,7 @@ beforeEach(() => {
   state.result = { data: null, error: null };
   state.signIn.mockReset();
   state.upload.mockReset();
+  state.upsert.mockReset();
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -153,6 +158,36 @@ describe("admin: managing projects as the signed-in admin", () => {
   it("rejects malformed ids before touching the database", async () => {
     expect((await deleteProject(json("/api/admin/projects/nope", "DELETE"), ctx("nope"))).status).toBe(400);
     expect((await deleteProject(json("/api/admin/projects/x", "DELETE"), ctx("5f3b8f2e-7c1a-4d55-9f0e-0b6f5b5d2a11"))).status).toBe(200);
+  });
+
+  it("requires an authenticated admin to read and update profile settings", async () => {
+    state.admin = null;
+    expect((await getProfile(json("/api/admin/profile", "GET"))).status).toBe(401);
+    expect((await updateProfile(json("/api/admin/profile", "PUT", {}))).status).toBe(401);
+  });
+
+  it("validates profile fields and upserts valid profile settings", async () => {
+    state.admin = { email: "me@example.com" };
+    const { site } = await import("@/config/site");
+    const invalid = await updateProfile(json("/api/admin/profile", "PUT", { ...site, email: "not-an-email" }));
+    expect(invalid.status).toBe(422);
+    expect((await invalid.json()).error.fields.email).toBeDefined();
+    const valid = await updateProfile(json("/api/admin/profile", "PUT", site));
+    expect(valid.status).toBe(200);
+    expect(state.upsert).toHaveBeenCalledWith({ id: true, profile: expect.objectContaining({ name: site.name }) }, { onConflict: "id" });
+  });
+
+  it("accepts a PDF résumé and rejects spoofed content", async () => {
+    state.admin = { email: "me@example.com" };
+    state.upload.mockResolvedValue({ error: null });
+    const pdf = (bytes: Uint8Array, type = "application/pdf") => {
+      const fd = new FormData();
+      fd.append("file", new File([bytes as BlobPart], "resume.pdf", { type }));
+      return new Request(`${URL_}/api/admin/resume`, { method: "POST", headers: { host: "localhost:3000" }, body: fd });
+    };
+    expect((await uploadResume(pdf(new TextEncoder().encode("%PDF-1.7")))).status).toBe(201);
+    expect((await uploadResume(pdf(new TextEncoder().encode("<html>not pdf</html>")))).status).toBe(415);
+    expect(state.upload).toHaveBeenCalledOnce();
   });
 });
 

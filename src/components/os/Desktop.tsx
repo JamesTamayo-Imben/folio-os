@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence } from "framer-motion";
-import { useCallback, useEffect, useState } from "react";
-import { site } from "@/config/site";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { site, type SiteProfile } from "@/config/site";
 import type { Project } from "@/data/projects";
 import type { PublicGreeting } from "@/lib/applicationsRepo";
 import type { Reference } from "@/lib/referencesRepo";
@@ -13,6 +13,8 @@ import { useIsCoarse, useIsMobile } from "./hooks";
 import { Icon, type IconName } from "./Icon";
 import { LockScreen } from "./LockScreen";
 import { ProjectsProvider } from "./projects-context";
+import { SiteProfileProvider, useSiteProfile } from "./site-profile-context";
+import { reorderDesktopIcons, sortDesktopIcons, type DropPosition, type SortDirection } from "./desktop-order";
 import { StartMenu } from "./StartMenu";
 import { Taskbar } from "./Taskbar";
 import { Wallpaper } from "./Wallpaper";
@@ -38,10 +40,33 @@ const GAME_ICONS: DIcon[] = [
   { app: "ttt", label: "Tic-Tac-Toe", icon: "hash" },
 ];
 
+const APP_ORDER_KEY = "folio-os-app-order";
+const GAME_ORDER_KEY = "folio-os-game-order";
 const UNLOCK_KEY = "folio-os-unlocked";
 const CASE_PATH = /^\/work\/([^/]+)/;
 
-export function Desktop({ projects, references = [], greeting = null, initialSlug }: { projects: Project[]; references?: Reference[]; greeting?: PublicGreeting | null; initialSlug?: string }) {
+function readDesktopOrder(storageKey: string, fallback: string[]) {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as string[];
+    if (!Array.isArray(parsed)) return fallback;
+    const valid = parsed.filter((id) => fallback.includes(id));
+    const extras = fallback.filter((id) => !valid.includes(id));
+    return [...valid, ...extras];
+  } catch {
+    return fallback;
+  }
+}
+
+function moveDesktopIcon(current: string[], from: AppId, to: AppId, position: DropPosition = "before") {
+  if (!current.includes(from) || !current.includes(to) || from === to) return current;
+  return reorderDesktopIcons(current, from, to, position);
+}
+
+export function Desktop({ projects, references = [], greeting = null, initialSlug, profile = site }: { projects: Project[]; references?: Reference[]; greeting?: PublicGreeting | null; initialSlug?: string; profile?: SiteProfile }) {
+  const site = profile;
   const { windows, focusedId, startOpen, locked, toasts, open, setStart, setLocked, closeCases } = useOs();
   const { theme, accent, wallpaper, setTheme, setWallpaper } = usePrefs();
   const mobile = useIsMobile();
@@ -50,8 +75,62 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
   const [systemLight, setSystemLight] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [draggedApp, setDraggedApp] = useState<{ group: "apps" | "games"; app: AppId } | null>(null);
+  const dragMovedRef = useRef(false);
+  const [dragPoint, setDragPoint] = useState<{ x: number; y: number } | null>(null);
+  const [appOrder, setAppOrder] = useState<string[]>(APP_ICONS.map((i) => i.app));
+  const [gameOrder, setGameOrder] = useState<string[]>(GAME_ICONS.map((i) => i.app));
 
   const effectiveTheme: "dark" | "light" = theme ?? (systemLight ? "light" : "dark");
+
+  useEffect(() => {
+    setAppOrder(readDesktopOrder(APP_ORDER_KEY, APP_ICONS.map((i) => i.app)));
+    setGameOrder(readDesktopOrder(GAME_ORDER_KEY, GAME_ICONS.map((i) => i.app)));
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    window.localStorage.setItem(APP_ORDER_KEY, JSON.stringify(appOrder));
+  }, [appOrder, mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    window.localStorage.setItem(GAME_ORDER_KEY, JSON.stringify(gameOrder));
+  }, [gameOrder, mounted]);
+
+  useEffect(() => {
+    if (!draggedApp || !dragPoint) return;
+    const onPointerMove = (event: PointerEvent) => {
+      setDragPoint({ x: event.clientX, y: event.clientY });
+      if (!dragMovedRef.current && dragPoint) {
+        const dx = Math.abs(event.clientX - dragPoint.x);
+        const dy = Math.abs(event.clientY - dragPoint.y);
+        if (dx > 4 || dy > 4) dragMovedRef.current = true;
+      }
+    };
+    const onPointerUp = (event: PointerEvent) => {
+      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLButtonElement>(".dicon[data-app]");
+      if (target) {
+        const targetApp = target.dataset.app as AppId | undefined;
+        const targetGroup = target.dataset.group as "apps" | "games" | undefined;
+        if (targetApp && targetGroup && targetApp !== draggedApp.app) {
+          const rect = target.getBoundingClientRect();
+          const position: DropPosition = event.clientY >= rect.top + rect.height / 2 ? "after" : "before";
+          moveIcon(draggedApp.group, draggedApp.app, targetGroup, targetApp, position);
+        }
+      }
+      setDraggedApp(null);
+      setDragPoint(null);
+      dragMovedRef.current = false;
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+  }, [draggedApp, dragPoint]);
 
   /* First load: deep links skip the lock screen; otherwise show it once per session. */
   useEffect(() => {
@@ -159,8 +238,51 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
     setWallpaper(ids[(ids.indexOf(wallpaper) + 1) % ids.length] ?? "default");
   };
 
+  const applySort = (mode: SortDirection | "default") => {
+    const appBase = APP_ICONS.map((item) => item.app);
+    const gameBase = GAME_ICONS.map((item) => item.app);
+
+    setAppOrder((current) => mode === "default" ? appBase : sortDesktopIcons(current, mode));
+    setGameOrder((current) => mode === "default" ? gameBase : sortDesktopIcons(current, mode));
+  };
+
+  const moveIcon = (fromGroup: "apps" | "games", dragId: AppId, targetGroup: "apps" | "games", targetId: AppId, position: DropPosition = "before") => {
+    if (fromGroup === targetGroup) {
+      if (fromGroup === "apps") {
+        setAppOrder((current) => moveDesktopIcon(current, dragId, targetId, position));
+      } else {
+        setGameOrder((current) => moveDesktopIcon(current, dragId, targetId, position));
+      }
+      return;
+    }
+
+    if (fromGroup === "apps") {
+      setAppOrder((current) => current.filter((id) => id !== dragId));
+      setGameOrder((current) => {
+        const next = [...current];
+        const index = next.indexOf(targetId);
+        const targetIndex = position === "after" ? index + 1 : index;
+        if (index === -1) return [...next, dragId];
+        return [...next.slice(0, Math.max(0, targetIndex)), dragId, ...next.slice(Math.max(0, targetIndex))];
+      });
+      return;
+    }
+
+    setGameOrder((current) => current.filter((id) => id !== dragId));
+    setAppOrder((current) => {
+      const next = [...current];
+      const index = next.indexOf(targetId);
+      const targetIndex = position === "after" ? index + 1 : index;
+      if (index === -1) return [...next, dragId];
+      return [...next.slice(0, Math.max(0, targetIndex)), dragId, ...next.slice(Math.max(0, targetIndex))];
+    });
+  };
+
   const menuItems: MenuItem[] = [
     { label: "Next wallpaper", run: nextWallpaper },
+    { label: "Sort: A–Z", run: () => applySort("asc") },
+    { label: "Sort: Z–A", run: () => applySort("desc") },
+    { label: "Reset desktop order", run: () => applySort("default") },
     { label: "Personalize", run: () => open("personalize") },
     { label: effectiveTheme === "dark" ? "Switch to light theme" : "Switch to dark theme", run: () => setTheme(effectiveTheme === "dark" ? "light" : "dark") },
     { label: "Open terminal", run: () => open("terminal") },
@@ -172,23 +294,53 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
     if (coarse || e.detail >= 2) open(app);
   };
 
-  const renderIcons = (list: DIcon[]) =>
-    list.map((i) => (
-      <button key={i.app} className={`dicon ${selected === i.app ? "dicon-sel" : ""}`} onClick={(e) => onIconClick(e, i.app)} onKeyDown={(e) => e.key === "Enter" && open(i.app)} aria-label={`${i.label}${coarse ? "" : ", double-click to open"}`}>
-        <span className="dicon-art"><Icon name={i.icon} size={28} /></span>
-        <span className="dicon-label">{i.label}</span>
-      </button>
-    ));
+  const renderIcons = (group: "apps" | "games", list: DIcon[]) => {
+    const order = group === "apps" ? appOrder : gameOrder;
+
+    return order.map((appId) => {
+      const item = list.find((i) => i.app === appId);
+      if (!item) return null;
+      return (
+        <button
+          key={item.app}
+          className={`dicon ${selected === item.app ? "dicon-sel" : ""} ${draggedApp?.app === item.app ? "dicon-dragging" : ""}`}
+          data-app={item.app}
+          data-group={group}
+          onPointerDown={(e) => {
+            if (e.button !== 0) return;
+            dragMovedRef.current = false;
+            setDraggedApp({ group, app: item.app });
+            setDragPoint({ x: e.clientX, y: e.clientY });
+            setSelected(item.app);
+          }}
+          onClick={(e) => {
+            if (dragMovedRef.current) {
+              e.preventDefault();
+              e.stopPropagation();
+              dragMovedRef.current = false;
+              return;
+            }
+            onIconClick(e, item.app);
+          }}
+          onKeyDown={(e) => e.key === "Enter" && open(item.app)}
+          aria-label={`${item.label}${coarse ? "" : ", double-click to open"}`}>
+          <span className="dicon-art"><Icon name={item.icon} size={28} /></span>
+          <span className="dicon-label">{item.label}</span>
+        </button>
+      );
+    });
+  };
 
   return (
+    <SiteProfileProvider profile={profile}>
     <ProjectsProvider projects={projects} references={references}>
       <div className="desktop" onContextMenu={(e) => { if (!(e.target as HTMLElement).closest(".win, .taskbar, .start")) { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY }); } }} onPointerDown={(e) => { if (!(e.target as HTMLElement).closest(".dicon")) setSelected(null); }}>
         <Wallpaper mounted={mounted} />
 
         <main className="icons" aria-label="Desktop">
           <h1 className="sr">{site.name}, {site.role}</h1>
-          <div className="icon-group" role="group" aria-label="Apps">{renderIcons(APP_ICONS)}</div>
-          <div className="icon-group" role="group" aria-label="Games">{renderIcons(GAME_ICONS)}</div>
+          <div className="icon-group" role="group" aria-label="Apps">{renderIcons("apps", APP_ICONS)}</div>
+          <div className="icon-group" role="group" aria-label="Games">{renderIcons("games", GAME_ICONS)}</div>
         </main>
 
         <div className="windows">
@@ -216,6 +368,7 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
         <AnimatePresence>{locked && <LockScreen onEnter={enter} greeting={greeting} />}</AnimatePresence>
       </div>
     </ProjectsProvider>
+    </SiteProfileProvider>
   );
 }
 

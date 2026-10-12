@@ -3,6 +3,16 @@
 
 create extension if not exists pgcrypto;
 
+-- ---------- Editable public profile ----------
+create table if not exists public.site_profile (
+  id boolean primary key default true check (id),
+  profile jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.site_profile enable row level security;
+drop policy if exists "public read site profile" on public.site_profile;
+create policy "public read site profile" on public.site_profile for select using (true);
+
 -- ---------- Projects ----------
 create table if not exists public.projects (
   id          uuid primary key default gen_random_uuid(),
@@ -55,8 +65,14 @@ insert into storage.buckets (id, name, public)
 values ('project-images', 'project-images', true)
 on conflict (id) do nothing;
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('public-resumes', 'public-resumes', true, 4194304, array['application/pdf'])
+on conflict (id) do update set public = true, file_size_limit = 4194304, allowed_mime_types = array['application/pdf'];
+
 drop policy if exists "public read project images" on storage.objects;
 create policy "public read project images" on storage.objects for select using (bucket_id = 'project-images');
+drop policy if exists "public read resumes" on storage.objects;
+create policy "public read resumes" on storage.objects for select using (bucket_id = 'public-resumes');
 -- No insert/update/delete policies: uploads happen server-side with the service-role key.
 
 

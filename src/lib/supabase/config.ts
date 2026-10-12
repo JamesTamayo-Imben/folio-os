@@ -9,3 +9,4 @@ export const hasPublicSupabase = () => Boolean(supabaseUrl() && supabaseAnonKey(
 export const hasAdminSupabase = () => Boolean(supabaseUrl() && supabaseAnonKey() && serviceKey() && adminEmail());
 
 export const IMAGE_BUCKET = "project-images";
+export const RESUME_BUCKET = "public-resumes";

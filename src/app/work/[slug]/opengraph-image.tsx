@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
-import { site } from "@/config/site";
 import { getPublishedProjects } from "@/lib/projectsRepo";
+import { getSiteProfile } from "@/lib/siteProfileRepo";
 
 export const alt = "Case study";
 export const size = { width: 1200, height: 630 };
@@ -8,7 +8,8 @@ export const contentType = "image/png";
 
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const p = (await getPublishedProjects()).find((x) => x.slug === slug);
+  const [projects, site] = await Promise.all([getPublishedProjects(), getSiteProfile()]);
+  const p = projects.find((x) => x.slug === slug);
   const [a, b, c, base] = p?.palette ?? ["#6c7bff", "#ff7a6b", "#4fd6b0", "#0d1020"];
   return new ImageResponse(
     (

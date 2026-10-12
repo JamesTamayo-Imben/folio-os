@@ -1,5 +1,5 @@
 import { Desktop } from "@/components/os/Desktop";
-import { site } from "@/config/site";
+import { getSiteProfile } from "@/lib/siteProfileRepo";
 import { getPublishedProjects } from "@/lib/projectsRepo";
 import { getPublishedReferences } from "@/lib/referencesRepo";
 
@@ -7,7 +7,7 @@ import { getPublishedReferences } from "@/lib/referencesRepo";
 export const revalidate = 60;
 
 export default async function Home() {
-  const [projects, references] = await Promise.all([getPublishedProjects(), getPublishedReferences()]);
+  const [projects, references, site] = await Promise.all([getPublishedProjects(), getPublishedReferences(), getSiteProfile()]);
   const person = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -20,7 +20,7 @@ export default async function Home() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(person).replace(/</g, "\\u003c") }} />
-      <Desktop projects={projects} references={references} />
+      <Desktop projects={projects} references={references} profile={site} />
     </>
   );
 }

@@ -4,18 +4,20 @@ import type { Project } from "@/data/projects";
 import { CoverArt } from "@/components/os/CoverArt";
 import { api } from "./adminApi";
 import { ApplicationsTab } from "./ApplicationsTab";
+import { AccountTab } from "./AccountTab";
 import { FeedbackTab } from "./FeedbackTab";
 import { InsightsTab } from "./InsightsTab";
 import { ProjectForm } from "./ProjectForm";
 import { ReferencesTab } from "./ReferencesTab";
 
-type Tab = "insights" | "projects" | "applications" | "feedback" | "references";
+type Tab = "insights" | "projects" | "applications" | "feedback" | "references" | "account";
 const TABS: { id: Tab; label: string }[] = [
   { id: "insights", label: "Insights" },
   { id: "projects", label: "Projects" },
   { id: "applications", label: "Applications" },
   { id: "feedback", label: "Feedback" },
   { id: "references", label: "References" },
+  { id: "account", label: "Profile & résumé" },
 ];
 
 export function AdminDashboard({ email }: { email: string }) {
@@ -66,7 +68,8 @@ export function AdminDashboard({ email }: { email: string }) {
             t.id === "insights" ? <InsightsTab /> :
             t.id === "applications" ? <ApplicationsTab /> :
             t.id === "feedback" ? <FeedbackTab onPendingChange={setPending} /> :
-            <ReferencesTab />
+            t.id === "references" ? <ReferencesTab /> :
+            <AccountTab />
           )}
         </div>
       ))}

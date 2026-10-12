@@ -1,5 +1,5 @@
 "use client";
-import { site } from "@/config/site";
+import { useSiteProfile } from "../os/site-profile-context";
 import { track } from "@/lib/track";
 import { useOs } from "@/lib/store";
 import { Icon } from "../os/Icon";
@@ -9,6 +9,7 @@ import { ReferencesList } from "./ReferencesList";
 
 /** The recruiter fast lane: everything a busy person needs on one screen. */
 export function Hire() {
+  const site = useSiteProfile();
   const open = useOs((s) => s.open);
   const projects = useProjects();
   const featured = [projects.find((p) => p.slug === site.featuredSlug), ...projects.filter((p) => p.slug !== site.featuredSlug)].filter(Boolean).slice(0, 3) as typeof projects;

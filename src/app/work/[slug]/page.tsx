@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Desktop } from "@/components/os/Desktop";
-import { site } from "@/config/site";
+import { getSiteProfile } from "@/lib/siteProfileRepo";
 import { getPublishedProjects } from "@/lib/projectsRepo";
 import { getPublishedReferences } from "@/lib/referencesRepo";
 
@@ -15,7 +15,8 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const p = (await getPublishedProjects()).find((x) => x.slug === slug);
+  const [projects, site] = await Promise.all([getPublishedProjects(), getSiteProfile()]);
+  const p = projects.find((x) => x.slug === slug);
   if (!p) return {};
   return {
     title: `${p.title} | ${site.name}`,
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function WorkPage({ params }: Props) {
   const { slug } = await params;
-  const [projects, references] = await Promise.all([getPublishedProjects(), getPublishedReferences()]);
+  const [projects, references, profile] = await Promise.all([getPublishedProjects(), getPublishedReferences(), getSiteProfile()]);
   if (!projects.some((p) => p.slug === slug)) notFound();
-  return <Desktop projects={projects} references={references} initialSlug={slug} />;
+  return <Desktop projects={projects} references={references} initialSlug={slug} profile={profile} />;
 }

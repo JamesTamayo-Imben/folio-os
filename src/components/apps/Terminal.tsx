@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { site } from "@/config/site";
+import { useSiteProfile } from "../os/site-profile-context";
 import { useOs, usePrefs, type AppId } from "@/lib/store";
 import { useProjects } from "../os/projects-context";
 
@@ -9,6 +9,7 @@ interface Line { kind: "in" | "out"; text: string }
 const APPS: Record<string, AppId> = { hire: "hire", feedback: "reviews", work: "work", about: "about", mail: "mail", terminal: "terminal", personalize: "personalize", bin: "bin", reviews: "reviews", snake: "snake", "2048": "g2048", minesweeper: "mines", memory: "memory", tictactoe: "ttt" };
 
 export function Terminal() {
+  const site = useSiteProfile();
   const open = useOs((s) => s.open);
   const projects = useProjects();
   const { setTheme, setWallpaper, wallpaper } = usePrefs();

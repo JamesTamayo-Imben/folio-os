@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
-import { site } from "@/config/site";
+import { useSiteProfile } from "../os/site-profile-context";
 import { Icon } from "../os/Icon";
 
 type Fields = Partial<Record<"name" | "email" | "message", string[]>>;
 type Status = { kind: "idle" } | { kind: "sending" } | { kind: "sent" } | { kind: "error"; message: string; fields?: Fields };
 
 export function Mail() {
+  const site = useSiteProfile();
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [values, setValues] = useState({ name: "", email: "", message: "", website: "" });
   const fields = status.kind === "error" ? status.fields ?? {} : {};

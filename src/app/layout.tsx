@@ -1,14 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { site } from "@/config/site";
+import { getSiteProfile } from "@/lib/siteProfileRepo";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(site.url),
-  title: `${site.name} | ${site.role}`,
-  description: site.headline,
-  openGraph: { title: `${site.name} | ${site.role}`, description: site.headline, type: "website" },
-  twitter: { card: "summary_large_image" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getSiteProfile();
+  return {
+    metadataBase: new URL(site.url),
+    title: `${site.name} | ${site.role}`,
+    description: site.headline,
+    openGraph: { title: `${site.name} | ${site.role}`, description: site.headline, type: "website" },
+    twitter: { card: "summary_large_image" },
+  };
+}
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0d1020" };
 

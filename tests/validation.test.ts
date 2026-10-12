@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contactSchema, projectsQuerySchema, stripControl } from "@/lib/validation";
+import { contactSchema, projectsQuerySchema, siteProfileSchema, stripControl } from "@/lib/validation";
 
 const valid = { name: "Ana Reyes", email: "ana@studio.com", message: "I would love to talk about a branding project." };
 
@@ -33,6 +33,33 @@ describe("projectsQuerySchema", () => {
   it("rejects unknown kinds and oversized limits", () => {
     expect(projectsQuerySchema.safeParse({ kind: "Sculpture" }).success).toBe(false);
     expect(projectsQuerySchema.safeParse({ limit: "500" }).success).toBe(false);
+  });
+});
+
+describe("siteProfileSchema", () => {
+  it("accepts a profile image URL alongside the rest of the public profile", () => {
+    const profile = siteProfileSchema.parse({
+      name: "Ana Reyes",
+      role: "Product designer",
+      headline: "Designing clear digital experiences.",
+      highlights: ["UX", "Systems"],
+      osName: "FolioOS",
+      tagline: "Portfolio and process",
+      bio: ["Hello world"],
+      skills: ["Product design"],
+      tools: ["Figma"],
+      email: "ana@example.com",
+      location: "Cavite, Philippines",
+      availability: "Open to work",
+      linkedin: "https://www.linkedin.com/in/ana",
+      resumeUrl: "/resume.pdf",
+      profileImageUrl: "https://cdn.example.com/ana.jpg",
+      socials: [{ label: "LinkedIn", href: "https://www.linkedin.com/in/ana" }],
+      featuredSlug: "making-of-folioos",
+      url: "http://localhost:3000",
+    });
+
+    expect(profile.profileImageUrl).toBe("https://cdn.example.com/ana.jpg");
   });
 });
 

@@ -16,7 +16,7 @@ Built with Next.js (App Router), React, TypeScript, Supabase, Zustand and Framer
 **For you**
 - **Private company links:** `/for/acme-x7k2` greets a company by name, opens the project you chose, and counts when it is opened. Track every application's stage.
 - **Insights:** visits, projects opened, résumé downloads, messages sent and where visitors came from. No cookies and no IP addresses stored.
-- **Admin:** manage projects (with image uploads), applications, feedback, references and insights.
+- **Admin:** manage your profile and résumé, projects (with image uploads), applications, feedback, references and insights.
 - **Five games** (Snake, 2048, Minesweeper, Memory Match, Tic-Tac-Toe), a terminal, themes and wallpapers for personality.
 
 ## 1. Run it locally
@@ -48,7 +48,7 @@ With no Supabase keys the site still runs: it shows the sample content, feedback
 ## 3. Your first-day checklist (before you send the link to anyone)
 
 - [ ] `src/config/site.ts`: your **name**, the **role you are applying for**, headline, strengths, email, LinkedIn, availability.
-- [ ] `public/resume.pdf`: replace the placeholder with your résumé (same file name).
+- [ ] Admin > Profile & résumé: update your public profile and upload a PDF résumé (or use `public/resume.pdf` as the fallback).
 - [ ] Admin > Projects: replace the **4 sample projects** with your own work (2 or 3 deep case studies beat 4 thin ones). The samples say "Replace this" on purpose, so no invented numbers go live. Keep or edit **Making of FolioOS**.
 - [ ] Admin > References: add 2 or 3 quotes (with permission).
 - [ ] Admin > Applications: make a private link for each company you apply to.
@@ -66,6 +66,7 @@ With no Supabase keys the site still runs: it shows the sample content, feedback
 | Applications | One private link per company, with a greeting, a project to open first, a stage and a view count |
 | Feedback | Approve, hide or delete feedback. A badge shows how many are waiting |
 | References | Curated quotes shown on Hire me and About |
+| Profile & résumé | Update public profile details and upload a PDF résumé |
 
 ### Private company links
 Create an application, copy its link, send it in your application. Their lock screen says "Prepared for {Company}" and the link opens the project you picked. Set the stage to **sent** when you share it; it flips to **viewed** on their first visit. Links are unguessable (random ending), never indexed by search engines, and unknown links are a plain 404.
@@ -75,7 +76,7 @@ Create an application, copy its link, send it in your application. Their lock sc
 - **Admin:** only `ADMIN_EMAIL` can use admin features, re-checked on the server for every request. Failed logins give one vague message and lock out after 8 tries in 15 minutes.
 - **Database:** Row Level Security is on. Visitors can read only published projects and references and approved feedback. Applications and analytics are private to the server. Every write goes through the API, which validates input.
 - **Cross-site requests:** all write endpoints refuse other origins.
-- **Uploads:** the real file type is checked from the bytes, SVG is refused, 4 MB limit.
+- **Uploads:** the real file type is checked from the bytes, SVG is refused, 4 MB limit. Résumés are PDF-only and stored in a separate public bucket.
 - **Privacy:** analytics use no cookies and store no IP address or browser details; Do Not Track is respected. Private notes and stages are never sent to visitors.
 - **Spam:** feedback and contact forms are rate limited and have a hidden trap field, and feedback is moderated.
 - The secret button is a convenience, not security. The login is the protection.

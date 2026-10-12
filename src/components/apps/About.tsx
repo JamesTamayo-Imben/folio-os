@@ -1,14 +1,19 @@
 "use client";
-import { initials, site } from "@/config/site";
+import { useSiteProfile, profileInitials } from "../os/site-profile-context";
 import { track } from "@/lib/track";
 import { Icon } from "../os/Icon";
 import { ReferencesList } from "./ReferencesList";
 
 export function About() {
+  const site = useSiteProfile();
   return (
     <div className="pad about">
       <div className="about-head">
-        <div className="avatar" aria-hidden="true">{initials}</div>
+        {site.profileImageUrl ? (
+          <img className="avatar" src={site.profileImageUrl} alt="Profile" style={{ objectFit: "cover" }} />
+        ) : (
+          <div className="avatar" aria-hidden="true">{profileInitials(site.name)}</div>
+        )}
         <div>
           <h1 className="about-name">{site.name}</h1>
           <p className="dim">{site.role}, {site.location}</p>

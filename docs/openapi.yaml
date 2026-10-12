@@ -90,6 +90,17 @@ paths:
     post: { summary: Admin sign out, responses: { "200": { description: Signed out } } }
   /api/admin/session:
     get: { summary: Who am I (admin only), responses: { "200": { description: Admin }, "401": { $ref: "#/components/responses/Error" } } }
+  /api/admin/profile:
+    get: { summary: Read public profile settings (admin only), responses: { "200": { description: Current profile settings }, "401": { $ref: "#/components/responses/Error" } } }
+    put:
+      summary: Update public profile settings (admin only)
+      description: Same-origin only. Updates profile details and the résumé URL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, description: Complete profile object; see src/config/site.ts for its fields. }
+      responses: { "200": { description: Updated }, "422": { $ref: "#/components/responses/Error" } }
   /api/admin/projects:
     get: { summary: List all projects including drafts (admin only), responses: { "200": { description: OK } } }
     post: { summary: Create a project (admin only), responses: { "201": { description: Created }, "409": { $ref: "#/components/responses/Error" }, "422": { $ref: "#/components/responses/Error" } } }
@@ -100,6 +111,8 @@ paths:
     post: { summary: Load the sample projects into an empty database (admin only), responses: { "200": { description: Loaded } } }
   /api/admin/upload:
     post: { summary: Upload a JPG, PNG or WebP image up to 4 MB as multipart field "file" (admin only), responses: { "201": { description: "{ url }" }, "413": { $ref: "#/components/responses/Error" }, "415": { $ref: "#/components/responses/Error" } } }
+  /api/admin/resume:
+    post: { summary: Upload a PDF résumé up to 4 MB as multipart field "file" (admin only), responses: { "201": { description: "{ url }" }, "413": { $ref: "#/components/responses/Error" }, "415": { $ref: "#/components/responses/Error" } } }
   /api/admin/comments:
     get: { summary: List every comment for moderation (admin only), responses: { "200": { description: OK } } }
   /api/admin/comments/{id}:

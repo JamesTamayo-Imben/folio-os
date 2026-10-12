@@ -2,7 +2,7 @@
  * Edit this file first. Everything personal lives here.
  */
 export const site = {
-  name: "Your Name",
+  name: "James T. Tamayo",
   /** The role you are applying for. Be specific: it is the first thing a recruiter reads. */
   role: "Product Designer",
   /** One sentence that says who you help and how. Shown on the Hire me screen. */
@@ -18,9 +18,11 @@ export const site = {
   skills: ["Product design", "Design systems", "Interaction design", "Accessibility", "Prototyping", "Brand identity"],
   tools: ["Figma", "Illustrator", "Framer", "Next.js"],
   email: "hello@example.com",
-  location: "Your City",
+  location: "Dasmarinas City, Cavite, Philippines",
   availability: "Open to full-time roles from next month",
   linkedin: "https://www.linkedin.com/",
+  /** Optional profile photo URL. Leave blank to fall back to initials. */
+  profileImageUrl: "",
   /** Put your résumé at public/resume.pdf (or change this path). */
   resumeUrl: "/resume.pdf",
   socials: [
@@ -32,6 +34,27 @@ export const site = {
   featuredSlug: "making-of-folioos",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
 } as const;
+
+export type SiteProfile = {
+  name: string;
+  role: string;
+  headline: string;
+  highlights: readonly string[];
+  osName: string;
+  tagline: string;
+  bio: readonly string[];
+  skills: readonly string[];
+  tools: readonly string[];
+  email: string;
+  location: string;
+  availability: string;
+  linkedin: string;
+  profileImageUrl: string;
+  resumeUrl: string;
+  socials: readonly { label: string; href: string }[];
+  featuredSlug: string;
+  url: string;
+};
 
 /** Ratings stay hidden until this many approved reviews exist, so one early review cannot define you. */
 export const MIN_RATINGS_FOR_AVERAGE = 3;

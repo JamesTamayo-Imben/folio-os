@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { coverBackground } from "@/components/os/CoverArt";
-import { site } from "@/config/site";
+import { getSiteProfile } from "@/lib/siteProfileRepo";
 import { getPublishedProjects } from "@/lib/projectsRepo";
 import { PrintButton } from "./PrintButton";
 
@@ -11,14 +11,16 @@ export const revalidate = 60;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const p = (await getPublishedProjects()).find((x) => x.slug === slug);
+  const [projects, site] = await Promise.all([getPublishedProjects(), getSiteProfile()]);
+  const p = projects.find((x) => x.slug === slug);
   return { title: p ? `${p.title} (case study) | ${site.name}` : "Case study", robots: { index: false, follow: false } };
 }
 
 /** A clean, paper-friendly version of a case study for recruiters who need an attachment. */
 export default async function PrintCase({ params }: Props) {
   const { slug } = await params;
-  const p = (await getPublishedProjects()).find((x) => x.slug === slug);
+  const [projects, site] = await Promise.all([getPublishedProjects(), getSiteProfile()]);
+  const p = projects.find((x) => x.slug === slug);
   if (!p) notFound();
 
   return (

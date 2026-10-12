@@ -81,6 +81,31 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
+/* ---------- Admin: public profile ---------- */
+const httpsUrl = z.string().trim().url("Use a full https URL.").max(500).refine((value) => value.startsWith("https://"), "Links must use https.");
+const profileLines = (maxItems: number, maxLength: number) => z.array(z.string().trim().min(1).max(maxLength)).max(maxItems);
+export const siteProfileSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  role: z.string().trim().min(1).max(100),
+  headline: z.string().trim().min(1).max(300),
+  highlights: profileLines(8, 80),
+  osName: z.string().trim().min(1).max(60),
+  tagline: z.string().trim().max(180),
+  bio: profileLines(6, 800),
+  skills: profileLines(20, 60),
+  tools: profileLines(20, 60),
+  email: z.string().trim().email().max(120),
+  location: z.string().trim().max(120),
+  availability: z.string().trim().max(160),
+  linkedin: httpsUrl,
+  profileImageUrl: z.string().trim().max(600).refine((value) => value === "" || value.startsWith("/") && !value.startsWith("//") || value.startsWith("https://"), "Use a site path, an https URL, or leave it blank."),
+  resumeUrl: z.string().trim().min(1).max(600).refine((value) => value.startsWith("/") && !value.startsWith("//") || value.startsWith("https://"), "Use a site path or an https URL."),
+  socials: z.array(z.object({ label: z.string().trim().min(1).max(40), href: httpsUrl })).max(12),
+  featuredSlug: z.string().trim().regex(slugRe).max(80),
+  url: httpsUrl.or(z.literal("http://localhost:3000")),
+}).strict();
+export type SiteProfileInput = z.infer<typeof siteProfileSchema>;
+
 /* ---------- v2: references, applications, tracking ---------- */
 export const referenceInputSchema = z.object({
   name: z.string().trim().min(1, "Add a name.").max(80),
