@@ -16,7 +16,9 @@ export async function GET(req: Request) {
   try {
     const { data, error } = await serviceClient().from("site_profile").select("profile").eq("id", true).maybeSingle();
     if (error) throw error;
-    return NextResponse.json({ profile: data?.profile ?? null }, { headers: { "cache-control": "no-store" } });
+    if (!data?.profile) return NextResponse.json({ profile: null }, { headers: { "cache-control": "no-store" } });
+    const { journeyPhotos: _journeyPhotos, availableDates: _availableDates, ...profile } = data.profile as Record<string, unknown>;
+    return NextResponse.json({ profile }, { headers: { "cache-control": "no-store" } });
   } catch (err) {
     log("error", "admin.profile_read_failed", { requestId, message: err instanceof Error ? err.message : "unknown" });
     return errorResponse(500, "INTERNAL", "Could not load the profile. Run the latest supabase/schema.sql.", requestId);

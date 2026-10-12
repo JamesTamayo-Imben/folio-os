@@ -9,8 +9,10 @@ import { FeedbackTab } from "./FeedbackTab";
 import { InsightsTab } from "./InsightsTab";
 import { ProjectForm } from "./ProjectForm";
 import { ReferencesTab } from "./ReferencesTab";
+import { JourneyGalleryTab } from "./JourneyGalleryTab";
+import { CalendarTab } from "./CalendarTab";
 
-type Tab = "insights" | "projects" | "applications" | "feedback" | "references" | "account";
+type Tab = "insights" | "projects" | "applications" | "feedback" | "references" | "account" | "journey" | "calendar";
 const TABS: { id: Tab; label: string }[] = [
   { id: "insights", label: "Insights" },
   { id: "projects", label: "Projects" },
@@ -18,6 +20,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "feedback", label: "Feedback" },
   { id: "references", label: "References" },
   { id: "account", label: "Profile & résumé" },
+  { id: "journey", label: "Journey Gallery" },
+  { id: "calendar", label: "Calendar" },
 ];
 
 export function AdminDashboard({ email }: { email: string }) {
@@ -69,7 +73,9 @@ export function AdminDashboard({ email }: { email: string }) {
             t.id === "applications" ? <ApplicationsTab /> :
             t.id === "feedback" ? <FeedbackTab onPendingChange={setPending} /> :
             t.id === "references" ? <ReferencesTab /> :
-            <AccountTab />
+            t.id === "account" ? <AccountTab /> :
+            t.id === "journey" ? <JourneyGalleryTab /> :
+            <CalendarTab />
           )}
         </div>
       ))}

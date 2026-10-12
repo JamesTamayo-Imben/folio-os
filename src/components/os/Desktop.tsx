@@ -5,6 +5,7 @@ import { site, type SiteProfile } from "@/config/site";
 import type { Project } from "@/data/projects";
 import type { PublicGreeting } from "@/lib/applicationsRepo";
 import type { Reference } from "@/lib/referencesRepo";
+import type { JourneyPhoto } from "@/lib/portfolio-content";
 import { referrerHost, track } from "@/lib/track";
 import { AppBody } from "../apps/AppBody";
 import { APP_META, useOs, usePrefs, type AppId } from "@/lib/store";
@@ -31,6 +32,12 @@ const APP_ICONS: DIcon[] = [
   { app: "mail", label: "Mail", icon: "mail" },
   { app: "terminal", label: "Terminal", icon: "terminal" },
   { app: "games", label: "Games", icon: "gamepad" },
+  { app: "notepad", label: "Notepad", icon: "notepad" },
+  { app: "draw", label: "Draw", icon: "edit" },
+  { app: "gallery", label: "Gallery", icon: "image" },
+  { app: "calendar", label: "Calendar", icon: "calendar" },
+  { app: "calculator", label: "Calculator", icon: "calculator" },
+  { app: "camera", label: "Camera", icon: "camera" },
   { app: "bin", label: "Recycle Bin", icon: "trash" },
 ];
 
@@ -67,16 +74,17 @@ function readDesktopOrder(storageKey: string, fallback: string[]) {
   }
 }
 
-export function Desktop({ projects, references = [], greeting = null, initialSlug, profile = site }: { projects: Project[]; references?: Reference[]; greeting?: PublicGreeting | null; initialSlug?: string; profile?: SiteProfile }) {
+export function Desktop({ projects, references = [], greeting = null, initialSlug, profile = site, journeyPhotos = [], unavailableDates = [], weeklyUnavailableDays = [], monthlyUnavailableDays = [] }: { projects: Project[]; references?: Reference[]; greeting?: PublicGreeting | null; initialSlug?: string; profile?: SiteProfile; journeyPhotos?: JourneyPhoto[]; unavailableDates?: string[]; weeklyUnavailableDays?: number[]; monthlyUnavailableDays?: number[] }) {
   const site = profile;
   const { windows, focusedId, startOpen, locked, toasts, open, setStart, setLocked, closeCases } = useOs();
-  const { theme, accent, wallpaper, setTheme, setWallpaper } = usePrefs();
+  const { theme, accent, wallpaper, taskbarPosition, taskbarAutoHide, setTheme, setWallpaper, setTaskbarPosition, setTaskbarAutoHide } = usePrefs();
   const mobile = useIsMobile();
   const coarse = useIsCoarse();
   const [mounted, setMounted] = useState(false);
+  const desktopAutoHide = mounted && taskbarAutoHide && !mobile && !coarse;
   const [systemLight, setSystemLight] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const [menu, setMenu] = useState<{ x: number; y: number; parentId: string | null; itemId: string | null } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; parentId: string | null; itemId: string | null; iconId: string | null; kind: "desktop" | "icon" | "taskbar" } | null>(null);
   const [draggedApp, setDraggedApp] = useState<{ group: "apps" | "games"; app: string } | null>(null);
   const dragMovedRef = useRef(false);
   const dragStartRef = useRef<IconPosition>({ x: 0, y: 0 });
@@ -88,6 +96,11 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
   const [iconPositions, setIconPositions] = useState<Record<string, IconPosition>>({});
   const [localItems, setLocalItems] = useState<LocalDesktopItem[]>([]);
   const [localDialog, setLocalDialog] = useState<{ kind: "file" | "folder"; id: string } | null>(null);
+  const [createDialog, setCreateDialog] = useState<{ kind: LocalDesktopItem["kind"]; parentId: string | null } | null>(null);
+  const [createName, setCreateName] = useState("");
+  const [createContent, setCreateContent] = useState("");
+  const [createTarget, setCreateTarget] = useState("");
+  const [createError, setCreateError] = useState("");
   const [fileDraft, setFileDraft] = useState("");
 
   const effectiveTheme: "dark" | "light" = theme ?? (systemLight ? "light" : "dark");
@@ -343,25 +356,52 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
   };
 
   const createLocalItem = (kind: LocalDesktopItem["kind"], parentId: string | null = null) => {
-    const name = window.prompt(`Name for new ${kind}:`)?.trim();
-    if (!name) return;
-    if (localItems.some((item) => item.parentId === parentId && item.name.toLowerCase() === name.toLowerCase())) {
-      useOs.getState().notify("An item with that name already exists here.");
+    setCreateName("");
+    setCreateContent("");
+    setCreateTarget("");
+    setCreateError("");
+    setCreateDialog({ kind, parentId });
+  };
+
+  const saveCreatedItem = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!createDialog) return;
+    const name = createName.trim();
+    if (!name || name.length > 80 || /[\u0000-\u001f\\/]/.test(name)) {
+      setCreateError("Enter a name up to 80 characters without slashes or control characters.");
+      return;
+    }
+    if (localItems.some((item) => item.parentId === createDialog.parentId && item.name.toLowerCase() === name.toLowerCase())) {
+      setCreateError("An item with that name already exists here.");
       return;
     }
 
-    const item: LocalDesktopItem = { id: window.crypto.randomUUID(), kind, name, parentId };
-    if (kind === "file") {
-      const content = window.prompt("Text file contents:", "");
-      if (content === null) return;
-      item.content = content;
-    }
-    if (kind === "shortcut") {
-      const target = window.prompt("Enter a website URL or a path on this site:", "https://");
-      if (!target?.trim()) return;
-      item.target = target.trim();
+    const item: LocalDesktopItem = {
+      id: window.crypto.randomUUID(),
+      kind: createDialog.kind,
+      name,
+      parentId: createDialog.parentId,
+    };
+    if (createDialog.kind === "file") item.content = createContent;
+    if (createDialog.kind === "shortcut") {
+      const target = createTarget.trim();
+      if (!target) {
+        setCreateError("Enter a website address or a path on this site.");
+        return;
+      }
+      try {
+        const isLocalPath = target.startsWith("/") && !target.startsWith("//");
+        const url = isLocalPath ? new URL(target, window.location.origin) : new URL(target);
+        if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Unsupported URL protocol");
+        if (!isLocalPath && !/^https?:\/\//i.test(target)) throw new Error("Website URL must include http(s)");
+        item.target = url.origin === window.location.origin ? `${url.pathname}${url.search}${url.hash}` : url.href;
+      } catch {
+        setCreateError("Enter a valid http(s) website address or a path beginning with /.");
+        return;
+      }
     }
     setLocalItems((current) => [...current, item]);
+    setCreateDialog(null);
   };
 
   const activateLocalItem = (item: LocalDesktopItem) => {
@@ -474,11 +514,50 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
     { label: effectiveTheme === "dark" ? "Switch to light theme" : "Switch to dark theme", run: () => setTheme(effectiveTheme === "dark" ? "light" : "dark") },
     { label: "Open terminal", run: () => open("terminal") },
     { label: `About ${site.osName}`, run: () => open("about") },
-    ...(menu?.itemId ? [
-      { label: "Rename", run: () => renameLocalItem(menu.itemId!) },
-      { label: "Delete", run: () => deleteLocalItem(menu.itemId!) },
-    ] : []),
   ];
+
+  const taskbarMenuItems: MenuItem[] = [
+    {
+      label: "Taskbar position",
+      run: () => undefined,
+      children: ([
+        ["bottom", "Bottom"],
+        ["left", "Left side"],
+        ["right", "Right side"],
+      ] as const).map(([position, label]) => ({
+        label: `${taskbarPosition === position ? "✓ " : ""}${label}`,
+        run: () => setTaskbarPosition(position),
+      })),
+    },
+    ...(!mobile && !coarse ? [{ label: taskbarAutoHide ? "Show taskbar always" : "Automatically hide taskbar", run: () => setTaskbarAutoHide(!taskbarAutoHide) }] : []),
+  ];
+
+  const iconMenuItems: MenuItem[] = menu?.kind === "taskbar"
+    ? taskbarMenuItems
+    : menu?.iconId
+    ? (() => {
+      const localItem = localItems.find((item) => item.id === menu.itemId);
+      const openItem = () => {
+        if (localItem) activateLocalItem(localItem);
+        else open(menu.iconId as AppId);
+      };
+      if (!localItem) return [{ label: "Open", run: openItem }];
+      return [
+        { label: "Open", run: openItem },
+        ...(localItem.kind === "folder" ? [{
+          label: "New",
+          run: () => undefined,
+          children: [
+            { label: "Text file…", run: () => createLocalItem("file", localItem.id) },
+            { label: "Folder", run: () => createLocalItem("folder", localItem.id) },
+            { label: "Shortcut…", run: () => createLocalItem("shortcut", localItem.id) },
+          ],
+        }] : []),
+        { label: "Rename", run: () => renameLocalItem(localItem.id) },
+        { label: "Delete", run: () => deleteLocalItem(localItem.id) },
+      ];
+    })()
+    : menuItems;
 
   const onIconClick = (e: React.MouseEvent, app: AppId) => {
     setSelected(app);
@@ -547,7 +626,7 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
   return (
     <SiteProfileProvider profile={profile}>
     <ProjectsProvider projects={projects} references={references}>
-      <div className={`desktop ${draggedApp && dragMovedRef.current ? "desktop-dragging" : ""}`} onContextMenu={(e) => { if (!(e.target as HTMLElement).closest(".win, .taskbar, .start, .local-overlay")) { e.preventDefault(); const localIcon = (e.target as HTMLElement).closest<HTMLElement>(".dicon[data-local-id]"); const item = localItems.find((entry) => entry.id === localIcon?.dataset.localId); setMenu({ x: e.clientX, y: e.clientY, parentId: item?.kind === "folder" ? item.id : null, itemId: item?.id ?? null }); } }} onPointerDown={(e) => { if (!(e.target as HTMLElement).closest(".dicon")) setSelected(null); }}>
+      <div className={`desktop taskbar-layout-${taskbarPosition} ${desktopAutoHide ? "taskbar-auto-hide-enabled" : ""} ${draggedApp && dragMovedRef.current ? "desktop-dragging" : ""}`} onContextMenu={(e) => { const target = e.target as HTMLElement; if (target.closest(".taskbar")) { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, parentId: null, itemId: null, iconId: null, kind: "taskbar" }); return; } if (!target.closest(".win, .start, .local-overlay")) { e.preventDefault(); const icon = target.closest<HTMLElement>(".dicon[data-icon-id]"); const item = localItems.find((entry) => entry.id === icon?.dataset.localId); setMenu({ x: e.clientX, y: e.clientY, parentId: item?.kind === "folder" ? item.id : null, itemId: item?.id ?? null, iconId: icon?.dataset.iconId ?? null, kind: icon ? "icon" : "desktop" }); } }} onPointerDown={(e) => { if (!(e.target as HTMLElement).closest(".dicon")) setSelected(null); }}>
         <Wallpaper mounted={mounted} />
         <input
           ref={wallpaperInputRef}
@@ -570,7 +649,7 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
           <AnimatePresence>
             {windows.map((w) => (
               <WindowFrame key={w.id} win={w} mobile={mobile}>
-                <AppBody win={w} />
+                <AppBody win={w} journeyPhotos={journeyPhotos} unavailableDates={unavailableDates} weeklyUnavailableDays={weeklyUnavailableDays} monthlyUnavailableDays={monthlyUnavailableDays} />
               </WindowFrame>
             ))}
           </AnimatePresence>
@@ -578,7 +657,7 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
 
         {startOpen && <div className="scrim" onPointerDown={() => setStart(false)} aria-hidden="true" />}
         {startOpen && <StartMenu effectiveTheme={effectiveTheme} />}
-        <Taskbar effectiveTheme={effectiveTheme} />
+        <Taskbar effectiveTheme={effectiveTheme} autoHideEnabled={desktopAutoHide} />
 
         <div className="toasts" aria-live="polite">
           {toasts.map((t) => (
@@ -586,7 +665,7 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
           ))}
         </div>
 
-        {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />}
+        {menu && <ContextMenu x={menu.x} y={menu.y} items={iconMenuItems} onClose={() => setMenu(null)} />}
 
         {localDialog && (() => {
           const item = localItems.find((entry) => entry.id === localDialog.id);
@@ -634,6 +713,51 @@ export function Desktop({ projects, references = [], greeting = null, initialSlu
             </div>
           );
         })()}
+
+        {createDialog && (
+          <div
+            className="local-overlay local-create-overlay"
+            onPointerDown={(event) => { if (event.target === event.currentTarget) setCreateDialog(null); }}
+            onKeyDown={(event) => { if (event.key === "Escape") setCreateDialog(null); }}
+          >
+            <form className="local-dialog local-create-dialog" role="dialog" aria-modal="true" aria-labelledby="create-dialog-title" onSubmit={saveCreatedItem}>
+              <header className="local-dialog-head">
+                <div>
+                  <p className="local-dialog-eyebrow">NEW {createDialog.kind.toUpperCase()}</p>
+                  <h2 id="create-dialog-title">Create {createDialog.kind === "file" ? "text file" : createDialog.kind}</h2>
+                </div>
+                <button type="button" className="local-close" onClick={() => setCreateDialog(null)} aria-label="Cancel creation">×</button>
+              </header>
+
+              <label className="local-field">
+                <span>{createDialog.kind === "file" ? "File name" : createDialog.kind === "folder" ? "Folder name" : "Shortcut name"}</span>
+                <input autoFocus required maxLength={80} value={createName} onChange={(event) => { setCreateName(event.target.value); setCreateError(""); }} placeholder={createDialog.kind === "file" ? "Notes.txt" : createDialog.kind === "folder" ? "Projects" : "Portfolio site"} />
+              </label>
+
+              {createDialog.kind === "file" && (
+                <label className="local-field">
+                  <span>Contents <span className="dim">(optional)</span></span>
+                  <textarea className="local-editor local-create-editor" value={createContent} onChange={(event) => setCreateContent(event.target.value)} placeholder="Start writing…" />
+                </label>
+              )}
+
+              {createDialog.kind === "shortcut" && (
+                <label className="local-field">
+                  <span>Website or local path</span>
+                  <input required inputMode="url" value={createTarget} onChange={(event) => { setCreateTarget(event.target.value); setCreateError(""); }} placeholder="https://example.com or /work/project" />
+                  <small className="dim">Only web links and paths on this site are supported.</small>
+                </label>
+              )}
+
+              {createError && <p className="local-form-error" role="alert">{createError}</p>}
+              <footer className="local-dialog-actions">
+                <span />
+                <button type="button" className="btn btn-quiet" onClick={() => setCreateDialog(null)}>Cancel</button>
+                <button type="submit" className="btn">Create {createDialog.kind === "file" ? "file" : createDialog.kind}</button>
+              </footer>
+            </form>
+          </div>
+        )}
 
         <AnimatePresence>{locked && <LockScreen onEnter={enter} greeting={greeting} />}</AnimatePresence>
       </div>

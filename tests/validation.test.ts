@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { contactSchema, projectsQuerySchema, siteProfileSchema, stripControl } from "@/lib/validation";
+import { monthlyUnavailableDaysSchema, journeyPhotosSchema, unavailableDatesSchema, weeklyUnavailableDaysSchema } from "@/lib/portfolio-content";
 
 const valid = { name: "Ana Reyes", email: "ana@studio.com", message: "I would love to talk about a branding project." };
 
@@ -60,6 +61,22 @@ describe("siteProfileSchema", () => {
     });
 
     expect(profile.profileImageUrl).toBe("https://cdn.example.com/ana.jpg");
+  });
+});
+
+describe("portfolio content schemas", () => {
+  it("accepts journey photos separately from the profile", () => {
+    expect(journeyPhotosSchema.parse([{ url: "https://cdn.example.com/trip.jpg", caption: "First hike" }])).toEqual([{ url: "https://cdn.example.com/trip.jpg", caption: "First hike" }]);
+  });
+  it("rejects impossible availability dates", () => {
+    expect(unavailableDatesSchema.safeParse(["2026-02-31"]).success).toBe(false);
+    expect(unavailableDatesSchema.parse(["2026-10-15", "2026-10-15"])).toEqual(["2026-10-15"]);
+  });
+  it("validates and normalizes recurring unavailable weekdays and monthly dates", () => {
+    expect(weeklyUnavailableDaysSchema.parse([0, 6, 0])).toEqual([0, 6]);
+    expect(monthlyUnavailableDaysSchema.parse([15, 1, 15])).toEqual([1, 15]);
+    expect(weeklyUnavailableDaysSchema.safeParse([7]).success).toBe(false);
+    expect(monthlyUnavailableDaysSchema.safeParse([32]).success).toBe(false);
   });
 });
 

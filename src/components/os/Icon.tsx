@@ -36,6 +36,10 @@ const paths = {
   plus: ["M12 5v14", "M5 12h14"],
   edit: ["M4 20h4L19 9l-4-4L4 16z", "M13.5 6.5l4 4"],
   external: ["M14 4h6v6", "M20 4l-9 9", "M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"],
+  notepad: ["M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z", "M14 3v5h5", "M8 12h8", "M8 16h8"],
+  calendar: ["M4 6h16v15H4z", "M8 3v6", "M16 3v6", "M4 10h16", "M8 14h.01", "M12 14h.01", "M16 14h.01", "M8 18h.01", "M12 18h.01"],
+  calculator: ["M5 3h14v18H5z", "M8 7h8v3H8z", "M8 14h.01", "M12 14h.01", "M16 14h.01", "M8 18h.01", "M12 18h.01", "M16 18h.01"],
+  camera: ["M3 8h4l2-3h6l2 3h4v12H3z", c(12, 14, 4)],
 } as const;
 
 export type IconName = keyof typeof paths;

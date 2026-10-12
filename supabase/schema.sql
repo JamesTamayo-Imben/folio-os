@@ -13,6 +13,26 @@ alter table public.site_profile enable row level security;
 drop policy if exists "public read site profile" on public.site_profile;
 create policy "public read site profile" on public.site_profile for select using (true);
 
+-- ---------- Public portfolio extras (managed outside Profile & résumé) ----------
+create table if not exists public.site_portfolio_content (
+  id boolean primary key default true check (id),
+  journey_photos jsonb not null default '[]'::jsonb check (jsonb_typeof(journey_photos) = 'array'),
+  available_dates date[] not null default '{}',
+  unavailable_dates date[] not null default '{}',
+  weekly_unavailable_days smallint[] not null default '{}',
+  monthly_unavailable_days smallint[] not null default '{}',
+  updated_at timestamptz not null default now()
+);
+alter table public.site_portfolio_content add column if not exists unavailable_dates date[] not null default '{}';
+alter table public.site_portfolio_content add column if not exists weekly_unavailable_days smallint[] not null default '{}';
+alter table public.site_portfolio_content add column if not exists monthly_unavailable_days smallint[] not null default '{}';
+update public.site_portfolio_content set available_dates = '{}' where cardinality(available_dates) > 0;
+alter table public.site_portfolio_content enable row level security;
+drop policy if exists "public read portfolio content" on public.site_portfolio_content;
+create policy "public read portfolio content" on public.site_portfolio_content for select using (true);
+insert into public.site_portfolio_content (id) values (true) on conflict (id) do nothing;
+update public.site_profile set profile = profile - 'journeyPhotos' - 'availableDates' where profile ? 'journeyPhotos' or profile ? 'availableDates';
+
 -- ---------- Projects ----------
 create table if not exists public.projects (
   id          uuid primary key default gen_random_uuid(),

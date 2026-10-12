@@ -15,8 +15,15 @@ import { RecycleBin } from "./RecycleBin";
 import { Reviews } from "./Reviews";
 import { Terminal } from "./Terminal";
 import { Work } from "./Work";
+import { Notepad } from "./Notepad";
+import { Draw } from "./Draw";
+import { JourneyGallery } from "./JourneyGallery";
+import { AvailabilityCalendar } from "./AvailabilityCalendar";
+import { Calculator } from "./Calculator";
+import { Camera } from "./Camera";
+import type { JourneyPhoto } from "@/lib/portfolio-content";
 
-export function AppBody({ win }: { win: Win }) {
+export function AppBody({ win, journeyPhotos = [], unavailableDates = [], weeklyUnavailableDays = [], monthlyUnavailableDays = [] }: { win: Win; journeyPhotos?: JourneyPhoto[]; unavailableDates?: string[]; weeklyUnavailableDays?: number[]; monthlyUnavailableDays?: number[] }) {
   switch (win.app) {
     case "hire": return <Hire />;
     case "work": return <Work />;
@@ -33,5 +40,11 @@ export function AppBody({ win }: { win: Win }) {
     case "mines": return <Minesweeper />;
     case "memory": return <MemoryMatch />;
     case "ttt": return <TicTacToe />;
+    case "notepad": return <Notepad />;
+    case "draw": return <Draw />;
+    case "gallery": return <JourneyGallery photos={journeyPhotos} />;
+    case "calendar": return <AvailabilityCalendar unavailableDates={unavailableDates} weeklyUnavailableDays={weeklyUnavailableDays} monthlyUnavailableDays={monthlyUnavailableDays} />;
+    case "calculator": return <Calculator />;
+    case "camera": return <Camera />;
   }
 }

@@ -21,6 +21,12 @@ export const APP_ICON: Record<Win["app"], IconName> = {
   mines: "flag",
   memory: "cards",
   ttt: "hash",
+  notepad: "notepad",
+  draw: "edit",
+  gallery: "image",
+  calendar: "calendar",
+  calculator: "calculator",
+  camera: "camera",
 };
 
 const MIN_W = 320;
